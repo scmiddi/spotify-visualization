@@ -4,19 +4,7 @@ import { useState } from 'react';
 import FileUpload from '@/components/FileUpload';
 import PlaylistSelector from '@/components/PlaylistSelector';
 import PlaylistTracks from '@/components/PlaylistTracks';
-
-interface PlaylistData {
-  playlists: {
-    [key: string]: {
-      name: string;
-      id: string;
-      tracks: {
-        id: string;
-        uri: string;
-      }[];
-    };
-  };
-}
+import { PlaylistData } from '@/types/spotify';
 
 export default function Home() {
   const [playlistData, setPlaylistData] = useState<PlaylistData | null>(null);

@@ -1,19 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { PlaylistData } from '@/types/spotify';
 
-interface PlaylistData {
-  playlists: {
-    name: string;
-    id: string;
-    tracks: {
-      id: string;
-      uri: string;
-    }[];
-  }[];
+interface FileUploadProps {
+  onFileLoaded: (data: PlaylistData) => void;
 }
 
-export default function FileUpload({ onFileLoaded }: { onFileLoaded: (data: PlaylistData) => void }) {
+export default function FileUpload({ onFileLoaded }: FileUploadProps) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
