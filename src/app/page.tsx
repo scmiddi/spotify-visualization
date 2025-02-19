@@ -12,35 +12,56 @@ export default function Home() {
 
   const handleFileLoaded = (data: PlaylistData) => {
     setPlaylistData(data);
-    const firstPlaylistId = Object.keys(data.playlists)[0];
-    setSelectedPlaylist(firstPlaylistId);
+    setSelectedPlaylist(null);
   };
 
-  const selectedTracks = selectedPlaylist && playlistData
-    ? playlistData.playlists[selectedPlaylist].tracks.map(track => track.id)
-    : [];
+  const loadExampleData = async () => {
+    try {
+      const response = await fetch('/spotify-visualization/example.json');
+      const data = await response.json();
+      setPlaylistData(data);
+      setSelectedPlaylist(null);
+    } catch (error) {
+      console.error('Fehler beim Laden der Beispieldatei:', error);
+    }
+  };
 
   return (
-    <main>
-      <div className="min-h-screen bg-zinc-900 text-zinc-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-center mb-8">
-            Spotify Playlist Visualizer
-          </h1>
+    <main className="min-h-screen bg-black text-white p-8">
+      <div className="max-w-5xl mx-auto">
+        <div className="space-y-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-4">Spotify Playlist Visualizer</h1>
+            <p className="text-zinc-400 mb-8">
+              Laden Sie Ihre Spotify Playlist-Daten hoch oder nutzen Sie unsere Beispieldatei.
+            </p>
+          </div>
 
           <div className="max-w-2xl mx-auto space-y-8">
-            <FileUpload onFileLoaded={handleFileLoaded} />
+            <div className="flex gap-4">
+              <FileUpload onFileLoaded={handleFileLoaded} />
+              <button
+                onClick={loadExampleData}
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition"
+              >
+                Beispieldatei laden
+              </button>
+            </div>
 
             {playlistData && (
-              <PlaylistSelector 
+              <PlaylistSelector
                 playlists={playlistData.playlists}
                 selectedPlaylist={selectedPlaylist}
                 onPlaylistSelect={setSelectedPlaylist}
               />
             )}
 
-            {selectedPlaylist && (
-              <PlaylistTracks trackIds={selectedTracks} />
+            {selectedPlaylist && playlistData && (
+              <PlaylistTracks
+                trackIds={playlistData.playlists[selectedPlaylist].tracks.map(
+                  (track) => track.id
+                )}
+              />
             )}
           </div>
         </div>
