@@ -1,44 +1,39 @@
 'use client';
 
-import { useCallback } from 'react';
-import { PlaylistData } from '@/types/playlist';
+import { useState } from 'react';
 
-interface FileUploadProps {
-  onFileLoaded: (data: PlaylistData) => void;
-}
-
-export default function FileUpload({ onFileLoaded }: FileUploadProps) {
-  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+export default function FileUpload({ onTracksFound }: { onTracksFound: (tracks: string[]) => void }) {
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const json = JSON.parse(e.target?.result as string);
-        onFileLoaded(json);
-      } catch (error) {
-        alert('Fehler beim Lesen der Datei. Bitte stelle sicher, dass es sich um eine gültige JSON-Datei handelt.');
-      }
-    };
-    reader.readAsText(file);
-  }, [onFileLoaded]);
+    setIsLoading(true);
+    
+    try {
+      const text = await file.text();
+      const tracks = text.split('\n').filter(line => line.trim());
+      onTracksFound(tracks);
+    } catch (err) {
+      console.error('Fehler beim Lesen der Datei:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="w-full max-w-md text-center">
-      <label className="block mb-4 text-lg">Wähle deine Spotify-Daten JSON-Datei</label>
-      <input
-        type="file"
-        accept=".json"
-        onChange={handleFileChange}
-        className="block w-full text-sm text-gray-500
-          file:mr-4 file:py-2 file:px-4
-          file:rounded-full file:border-0
-          file:text-sm file:font-semibold
-          file:bg-zinc-800 file:text-white
-          hover:file:bg-zinc-700
-          cursor-pointer"
-      />
+    <div className="space-y-4">
+      <label className="block">
+        <span className="sr-only">Datei auswählen</span>
+        <input
+          type="file"
+          accept=".txt"
+          onChange={handleFileUpload}
+          className="block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-zinc-50 file:text-zinc-700 hover:file:bg-zinc-100"
+        />
+      </label>
+      {isLoading && <div>Lade...</div>}
     </div>
   );
 } 

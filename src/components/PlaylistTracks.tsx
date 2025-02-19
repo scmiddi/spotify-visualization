@@ -14,17 +14,16 @@ interface PlaylistTracksProps {
   trackIds: string[];
 }
 
-interface TrackInfo {
+interface SpotifyTrack {
   id: string;
   name: string;
-  artists: string[];
-  album: string;
-  duration: number;
-  imageUrl?: string;
+  artists: {
+    name: string;
+  }[];
 }
 
 export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
-  const [tracks, setTracks] = useState<any[]>([]);
+  const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,7 +48,7 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
         return data.access_token;
       } catch (err) {
         console.error('Token Fetch Error:', err);
-        throw new Error(`Fehler beim Abrufen des Access Tokens: `);
+        throw new Error(`Fehler beim Abrufen des Access Tokens: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
       }
     };
 
@@ -64,7 +63,7 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
           trackGroups.push(trackIds.slice(i, i + 50));
         }
         
-        const allTracks = [];
+        const allTracks: SpotifyTrack[] = [];
         for (const group of trackGroups) {
           const response = await spotifyApi.getTracks(group);
           allTracks.push(...response.body.tracks);
@@ -101,7 +100,7 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
           <li key={track.id} className="p-4 bg-zinc-800 rounded-lg">
             <div className="font-medium">{track.name}</div>
             <div className="text-sm text-zinc-400">
-              {track.artists.map((artist: any) => artist.name).join(', ')}
+              {track.artists.map(artist => artist.name).join(', ')}
             </div>
           </li>
         ))}
