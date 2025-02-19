@@ -3,32 +3,34 @@
 import { PlaylistData } from '@/types/playlist';
 
 interface PlaylistSelectorProps {
-  playlists: PlaylistData['playlists'];
-  onSelect: (playlistId: string) => void;
+  playlists: string[];
+  selectedPlaylist: string | null;
+  onPlaylistSelect: (playlist: string) => void;
 }
 
-export default function PlaylistSelector({ playlists, onSelect }: PlaylistSelectorProps) {
+export default function PlaylistSelector({
+  playlists,
+  selectedPlaylist,
+  onPlaylistSelect,
+}: PlaylistSelectorProps) {
   return (
-    <section className="w-full max-w-md">
-      <h2 className="text-xl font-semibold mb-4">Wähle eine Playlist</h2>
-      <ul className="space-y-2">
-        {Object.keys(playlists).map((playlistId) => {
-          const playlist = playlists[playlistId];
-          return (
-            <li key={playlistId}>
-              <button
-                onClick={() => onSelect(playlistId)}
-                className="w-full p-4 text-left bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
-              >
-                <div className="font-medium">{playlist.name}</div>
-                <div className="text-sm text-zinc-400">
-                  {playlist.tracks.length} Tracks
-                </div>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold">Playlists</h2>
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+        {playlists.map((playlist) => (
+          <button
+            key={playlist}
+            onClick={() => onPlaylistSelect(playlist)}
+            className={`p-4 rounded-lg text-left transition ${
+              selectedPlaylist === playlist
+                ? 'bg-green-500 text-white'
+                : 'bg-zinc-800 hover:bg-zinc-700'
+            }`}
+          >
+            <div className="font-medium">{playlist}</div>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 } 
