@@ -7,29 +7,29 @@ import PlaylistTracks from '@/components/PlaylistTracks';
 
 interface PlaylistData {
   playlists: {
-    name: string;
-    tracks: string[];
-  }[];
+    [key: string]: {
+      name: string;
+      id: string;
+      tracks: {
+        id: string;
+        uri: string;
+      }[];
+    };
+  };
 }
 
 export default function Home() {
   const [playlistData, setPlaylistData] = useState<PlaylistData | null>(null);
   const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
 
-  const handleTracksFound = (tracks: string[]) => {
-    // Konvertiere die Tracks in das erwartete Format
-    const playlistData: PlaylistData = {
-      playlists: [{
-        name: 'Importierte Playlist',
-        tracks: tracks
-      }]
-    };
-    setPlaylistData(playlistData);
-    setSelectedPlaylist('Importierte Playlist');
+  const handleFileLoaded = (data: PlaylistData) => {
+    setPlaylistData(data);
+    const firstPlaylistId = Object.keys(data.playlists)[0];
+    setSelectedPlaylist(firstPlaylistId);
   };
 
   const selectedTracks = selectedPlaylist && playlistData
-    ? playlistData.playlists.find(p => p.name === selectedPlaylist)?.tracks || []
+    ? playlistData.playlists[selectedPlaylist].tracks.map(track => track.id)
     : [];
 
   return (
@@ -41,11 +41,11 @@ export default function Home() {
           </h1>
 
           <div className="max-w-2xl mx-auto space-y-8">
-            <FileUpload onTracksFound={handleTracksFound} />
+            <FileUpload onFileLoaded={handleFileLoaded} />
 
             {playlistData && (
               <PlaylistSelector 
-                playlists={playlistData.playlists.map(p => p.name)}
+                playlists={playlistData.playlists}
                 selectedPlaylist={selectedPlaylist}
                 onPlaylistSelect={setSelectedPlaylist}
               />
