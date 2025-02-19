@@ -42,25 +42,25 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
   useEffect(() => {
     const fetchToken = async () => {
       try {
-        // Debug-Ausgabe für Credentials (NICHT in Produktion verwenden!)
-        console.log('Client ID exists:', !!process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID);
-        console.log('Client Secret exists:', !!process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_SECRET);
+        const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
+        const clientSecret = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_SECRET;
         
-        const credentials = btoa(`${process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID}:${process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_SECRET}`);
-        
-        console.log('Making token request...');
+        if (!clientId || !clientSecret) {
+          throw new Error('Spotify credentials are missing');
+        }
+
         const response = await fetch('https://accounts.spotify.com/api/token', {
           method: 'POST',
           headers: {
-            'Authorization': `Basic ${credentials}`,
             'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret),
           },
           body: 'grant_type=client_credentials'
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Token response error:', errorText);
+          const errorData = await response.text();
+          console.error('Token response error:', errorData);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
