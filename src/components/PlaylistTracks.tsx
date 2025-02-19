@@ -46,22 +46,31 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
         const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
         const clientSecret = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_SECRET;
         
+        // Debug-Ausgaben
+        console.log('Environment Check:');
+        console.log('Client ID exists:', !!clientId);
+        console.log('Client Secret exists:', !!clientSecret);
+        console.log('Client ID length:', clientId?.length);
+        console.log('Client Secret length:', clientSecret?.length);
+
         if (!clientId || !clientSecret) {
           throw new Error('Spotify credentials are missing');
         }
 
+        const credentials = btoa(`${clientId}:${clientSecret}`);
+        
         const response = await fetch('https://accounts.spotify.com/api/token', {
           method: 'POST',
           headers: {
+            'Authorization': `Basic ${credentials}`,
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret),
           },
           body: 'grant_type=client_credentials'
         });
 
         if (!response.ok) {
-          const errorData = await response.text();
-          console.error('Token response error:', errorData);
+          const errorText = await response.text();
+          console.error('Token response error:', errorText);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
