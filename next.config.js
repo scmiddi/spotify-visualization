@@ -10,7 +10,7 @@ const nextConfig = {
       },
     ],
   },
-  basePath: '/spotify-visualization',
+  basePath: process.env.NODE_ENV === 'production' ? '/spotify-visualization' : '',
 }
 
 module.exports = nextConfig 

@@ -1,7 +1,3 @@
-'use client';
-
-import { PlaylistData } from '@/types/playlist';
-
 interface PlaylistSelectorProps {
   playlists: {
     [key: string]: {
