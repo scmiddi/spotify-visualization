@@ -42,8 +42,13 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
   useEffect(() => {
     const fetchToken = async () => {
       try {
+        // Debug-Ausgabe für Credentials (NICHT in Produktion verwenden!)
+        console.log('Client ID exists:', !!process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID);
+        console.log('Client Secret exists:', !!process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_SECRET);
+        
         const credentials = btoa(`${process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID}:${process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_SECRET}`);
         
+        console.log('Making token request...');
         const response = await fetch('https://accounts.spotify.com/api/token', {
           method: 'POST',
           headers: {
@@ -54,14 +59,16 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
         });
 
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Token response error:', errorText);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
         return data.access_token;
       } catch (err) {
-        console.error('Token Fetch Error:', err);
-        throw new Error(`Fehler beim Abrufen des Access Tokens: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
+        console.error('Token Fetch Error Details:', err);
+        throw err;
       }
     };
 
