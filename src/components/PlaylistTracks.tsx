@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import SpotifyWebApi from 'spotify-web-api-node';
 
 const spotifyApi = new SpotifyWebApi({
-  clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
-  clientSecret: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_SECRET
+  clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
 });
 
 interface PlaylistTracksProps {
@@ -25,11 +24,26 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
   useEffect(() => {
     const fetchToken = async () => {
       try {
-        const data = await spotifyApi.clientCredentialsGrant();
-        return data.body['access_token'];
+        const credentials = btoa(`${process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID}:${process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_SECRET}`);
+        
+        const response = await fetch('https://accounts.spotify.com/api/token', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${credentials}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: 'grant_type=client_credentials'
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.access_token;
       } catch (err) {
         console.error('Token Fetch Error:', err);
-        throw new Error(`Fehler beim Abrufen des Access Tokens: ${err}`);
+        throw new Error(`Fehler beim Abrufen des Access Tokens: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
       }
     };
 
@@ -52,7 +66,8 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
         setTracks(allTracks);
         setError(null);
       } catch (err) {
-        setError(`Error loading tracks: ${err}`);
+        const errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler';
+        setError(`Fehler beim Laden der Tracks: ${errorMessage}`);
         console.error('Error loading tracks:', err);
       }
     };
@@ -65,7 +80,7 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
   if (error) {
     return (
       <div className="p-4 bg-red-500/10 border border-red-500 rounded-lg text-red-500">
-        <p className="font-medium">Error</p>
+        <p className="font-medium">Fehler</p>
         <p className="text-sm">{error}</p>
       </div>
     );
@@ -75,7 +90,7 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
     <div className="space-y-4">
       <h3 className="text-xl font-semibold">Tracks ({tracks.length})</h3>
       <ul className="space-y-2">
-        {tracks.map((track: any) => (
+        {tracks.map((track) => (
           <li key={track.id} className="p-4 bg-zinc-800 rounded-lg">
             <div className="font-medium">{track.name}</div>
             <div className="text-sm text-zinc-400">
