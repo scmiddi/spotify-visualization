@@ -49,7 +49,7 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
         return data.access_token;
       } catch (err) {
         console.error('Token Fetch Error:', err);
-        throw new Error(`Fehler beim Abrufen des Access Tokens: ${err.message}`);
+        throw new Error(`Fehler beim Abrufen des Access Tokens: `);
       }
     };
 
