@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import SpotifyWebApi from 'spotify-web-api-node';
 import Image from 'next/image';
+import PlaylistGraph from './PlaylistGraph';
 
 const spotifyApi = new SpotifyWebApi({
   clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
@@ -123,8 +124,12 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-xl font-semibold">Tracks ({tracks.length})</h3>
+    <div className="space-y-8">
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold">Tracks ({tracks.length})</h3>
+        <PlaylistGraph tracks={tracks} />
+      </div>
+      
       <ul className="space-y-2">
         {tracks.map((track) => (
           <li key={track.id} className="p-4 bg-zinc-800 rounded-lg flex items-center gap-4">
