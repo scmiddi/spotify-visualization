@@ -18,13 +18,6 @@ interface Link extends d3.SimulationLinkDatum<Node> {
   target: string | Node;
 }
 
-interface DragEvent {
-  active: boolean;
-  subject: Node;
-  x: number;
-  y: number;
-}
-
 interface PlaylistGraphProps {
   tracks: {
     id: string;
