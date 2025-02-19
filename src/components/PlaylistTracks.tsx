@@ -16,16 +16,22 @@ interface SpotifyArtist {
   name: string;
 }
 
+interface SpotifyImage {
+  url: string;
+  height?: number;
+  width?: number;
+}
+
+interface SpotifyAlbum {
+  name: string;
+  images: SpotifyImage[];
+}
+
 interface SpotifyTrack {
   id: string;
   name: string;
   artists: SpotifyArtist[];
-  album?: {
-    name: string;
-    images: {
-      url: string;
-    }[];
-  };
+  album?: SpotifyAlbum;
 }
 
 export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
@@ -127,7 +133,7 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
             <div>
               <div className="font-medium">{track.name}</div>
               <div className="text-sm text-zinc-400">
-                {track.artists.map((artist: any) => artist.name).join(', ')}
+                {track.artists.map((artist) => artist.name).join(', ')}
               </div>
             </div>
           </li>
