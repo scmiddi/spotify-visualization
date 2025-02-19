@@ -3,15 +3,26 @@
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
-interface Node {
+interface Node extends d3.SimulationNodeDatum {
   id: string;
   name: string;
   type: 'track' | 'artist';
+  x?: number;
+  y?: number;
+  fx?: number | null;
+  fy?: number | null;
 }
 
-interface Link {
-  source: string;
-  target: string;
+interface Link extends d3.SimulationLinkDatum<Node> {
+  source: string | Node;
+  target: string | Node;
+}
+
+interface DragEvent {
+  active: boolean;
+  subject: Node;
+  x: number;
+  y: number;
 }
 
 interface PlaylistGraphProps {
@@ -62,48 +73,46 @@ export default function PlaylistGraph({ tracks }: PlaylistGraphProps) {
     const width = 800;
     const height = 600;
     
-    // SVG und Container für Zoom
     const svg = d3.select(svgRef.current)
       .attr('width', width)
       .attr('height', height);
 
     svg.selectAll('*').remove();
 
-    // Zoom-Verhalten hinzufügen
-    const zoom = d3.zoom()
+    // Zoom-Verhalten
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
       .on('zoom', (event) => {
         container.attr('transform', event.transform);
       });
 
-    svg.call(zoom as any);
+    svg.call(zoom);
 
-    // Container für den zoombare Inhalt
     const container = svg.append('g');
 
-    // Simulation erstellen
-    const simulation = d3.forceSimulation(nodes as any)
-      .force('link', d3.forceLink(links).id((d: any) => d.id))
+    // Simulation
+    const simulation = d3.forceSimulation<Node>(nodes)
+      .force('link', d3.forceLink<Node, Link>(links).id(d => d.id))
       .force('charge', d3.forceManyBody().strength(-100))
       .force('center', d3.forceCenter(width / 2, height / 2));
 
-    // Links zeichnen
+    // Links
     const link = container.append('g')
-      .selectAll('line')
+      .selectAll<SVGLineElement, Link>('line')
       .data(links)
       .join('line')
       .attr('stroke', '#999')
       .attr('stroke-opacity', 0.6);
 
-    // Nodes zeichnen
+    // Nodes
     const node = container.append('g')
-      .selectAll('g')
+      .selectAll<SVGGElement, Node>('g')
       .data(nodes)
       .join('g')
-      .call(d3.drag()
+      .call(d3.drag<SVGGElement, Node>()
         .on('start', dragstarted)
         .on('drag', dragged)
-        .on('end', dragended) as any);
+        .on('end', dragended));
 
     // Kreise für die Nodes
     node.append('circle')
@@ -121,28 +130,28 @@ export default function PlaylistGraph({ tracks }: PlaylistGraphProps) {
     // Simulation Update
     simulation.on('tick', () => {
       link
-        .attr('x1', (d: any) => d.source.x)
-        .attr('y1', (d: any) => d.source.y)
-        .attr('x2', (d: any) => d.target.x)
-        .attr('y2', (d: any) => d.target.y);
+        .attr('x1', d => (d.source as Node).x ?? 0)
+        .attr('y1', d => (d.source as Node).y ?? 0)
+        .attr('x2', d => (d.target as Node).x ?? 0)
+        .attr('y2', d => (d.target as Node).y ?? 0);
 
       node
-        .attr('transform', (d: any) => `translate(${d.x},${d.y})`);
+        .attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`);
     });
 
     // Drag Funktionen
-    function dragstarted(event: any) {
+    function dragstarted(event: d3.D3DragEvent<SVGGElement, Node, Node>) {
       if (!event.active) simulation.alphaTarget(0.3).restart();
       event.subject.fx = event.subject.x;
       event.subject.fy = event.subject.y;
     }
 
-    function dragged(event: any) {
+    function dragged(event: d3.D3DragEvent<SVGGElement, Node, Node>) {
       event.subject.fx = event.x;
       event.subject.fy = event.y;
     }
 
-    function dragended(event: any) {
+    function dragended(event: d3.D3DragEvent<SVGGElement, Node, Node>) {
       if (!event.active) simulation.alphaTarget(0);
       event.subject.fx = null;
       event.subject.fy = null;
@@ -156,7 +165,7 @@ export default function PlaylistGraph({ tracks }: PlaylistGraphProps) {
     const translateX = (width - fullWidth * scale) / 2;
     const translateY = (height - fullHeight * scale) / 2;
     
-    svg.call(zoom.transform as any, d3.zoomIdentity
+    svg.call(zoom.transform, d3.zoomIdentity
       .translate(translateX, translateY)
       .scale(scale));
 
