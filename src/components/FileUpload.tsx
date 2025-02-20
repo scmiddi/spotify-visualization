@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { PlaylistData } from '@/types/spotify';
 
 interface FileUploadProps {
@@ -9,44 +9,54 @@ interface FileUploadProps {
 
 export default function FileUpload({ onFileLoaded }: FileUploadProps) {
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setIsLoading(true);
-    setError(null);
-
     try {
       const text = await file.text();
-      const data = JSON.parse(text);
-      onFileLoaded(data);
+      let jsonData: PlaylistData;
+
+      try {
+        jsonData = JSON.parse(text);
+      } catch (e) {
+        throw new Error('Ungültiges Dateiformat. Bitte eine gültige JSON oder TXT Datei mit JSON-Inhalt hochladen.');
+      }
+
+      if (!jsonData.playlists) {
+        throw new Error('Ungültiges Datenformat. Die Datei muss ein "playlists" Objekt enthalten.');
+      }
+
+      onFileLoaded(jsonData);
+      setError(null);
     } catch (err) {
-      setError('Fehler beim Lesen der Datei');
-      console.error('Error reading file:', err);
-    } finally {
-      setIsLoading(false);
+      setError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   return (
     <div className="space-y-4">
       <label className="block">
-        <span className="sr-only">Choose file</span>
         <input
+          ref={fileInputRef}
           type="file"
-          accept=".json"
-          onChange={handleFileUpload}
-          className="block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-zinc-50 file:text-zinc-700 hover:file:bg-zinc-100"
+          accept=".json,.txt"
+          onChange={handleFileChange}
+          className="block w-full text-sm text-zinc-400
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-lg file:border-0
+            file:text-sm file:font-semibold
+            file:bg-zinc-800 file:text-white
+            hover:file:bg-zinc-700
+            cursor-pointer"
         />
       </label>
-      {isLoading && <div>Loading...</div>}
-      {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500 rounded-lg text-red-500">
-          <p className="text-sm">{error}</p>
-        </div>
-      )}
+      {error && <p className="text-red-500 text-sm">{error}</p>}
     </div>
   );
 } 
