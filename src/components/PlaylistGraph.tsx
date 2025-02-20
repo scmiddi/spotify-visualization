@@ -6,24 +6,30 @@ import * as d3 from 'd3';
 interface Node extends d3.SimulationNodeDatum {
   id: string;
   name: string;
-  type: 'track' | 'artist';
+  type: 'track' | 'artist' | 'genre';
   x?: number;
   y?: number;
   fx?: number | null;
   fy?: number | null;
+  playlistIds?: string[];
 }
 
 interface Link extends d3.SimulationLinkDatum<Node> {
   source: string | Node;
   target: string | Node;
+  type: 'track-artist' | 'artist-genre';
 }
 
 interface PlaylistGraphProps {
-  tracks: {
+  tracks: Array<{
     id: string;
     name: string;
-    artists: { name: string; }[];
-  }[];
+    artists: Array<{
+      name: string;
+      genres?: string[];
+    }>;
+    playlistId: string;
+  }>;
 }
 
 export default function PlaylistGraph({ tracks }: PlaylistGraphProps) {
@@ -32,21 +38,32 @@ export default function PlaylistGraph({ tracks }: PlaylistGraphProps) {
   useEffect(() => {
     if (!svgRef.current || !tracks.length) return;
 
-    // Daten vorbereiten
     const nodes: Node[] = [];
     const links: Link[] = [];
+    const genreMap = new Map<string, string[]>();
 
     // Tracks und Artists zu Nodes hinzufügen
     tracks.forEach(track => {
-      nodes.push({
-        id: track.id,
-        name: track.name,
-        type: 'track'
-      });
+      // Track Node
+      const existingTrack = nodes.find(n => n.id === track.id);
+      if (existingTrack) {
+        existingTrack.playlistIds = [
+          ...(existingTrack.playlistIds || []),
+          track.playlistId
+        ];
+      } else {
+        nodes.push({
+          id: track.id,
+          name: track.name,
+          type: 'track',
+          playlistIds: [track.playlistId]
+        });
+      }
 
+      // Artist und Genre Nodes
       track.artists.forEach(artist => {
-        // Prüfen ob Artist bereits existiert
-        if (!nodes.find(node => node.id === artist.name)) {
+        // Artist Node
+        if (!nodes.find(n => n.id === artist.name)) {
           nodes.push({
             id: artist.name,
             name: artist.name,
@@ -54,10 +71,39 @@ export default function PlaylistGraph({ tracks }: PlaylistGraphProps) {
           });
         }
 
-        // Link zwischen Track und Artist erstellen
+        // Track-Artist Link
         links.push({
           source: track.id,
-          target: artist.name
+          target: artist.name,
+          type: 'track-artist'
+        });
+
+        // Genres sammeln
+        if (artist.genres) {
+          artist.genres.forEach(genre => {
+            const artists = genreMap.get(genre) || [];
+            if (!artists.includes(artist.name)) {
+              artists.push(artist.name);
+              genreMap.set(genre, artists);
+            }
+          });
+        }
+      });
+    });
+
+    // Genre Nodes und Links hinzufügen
+    genreMap.forEach((artists, genre) => {
+      nodes.push({
+        id: genre,
+        name: genre,
+        type: 'genre'
+      });
+
+      artists.forEach(artist => {
+        links.push({
+          source: artist,
+          target: genre,
+          type: 'artist-genre'
         });
       });
     });
@@ -72,7 +118,7 @@ export default function PlaylistGraph({ tracks }: PlaylistGraphProps) {
 
     svg.selectAll('*').remove();
 
-    // Zoom-Verhalten
+    // Zoom Setup
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
       .on('zoom', (event) => {
@@ -83,21 +129,22 @@ export default function PlaylistGraph({ tracks }: PlaylistGraphProps) {
 
     const container = svg.append('g');
 
-    // Simulation
+    // Simulation Setup
     const simulation = d3.forceSimulation<Node>(nodes)
       .force('link', d3.forceLink<Node, Link>(links).id(d => d.id))
       .force('charge', d3.forceManyBody().strength(-100))
       .force('center', d3.forceCenter(width / 2, height / 2));
 
-    // Links
+    // Links zeichnen
     const link = container.append('g')
       .selectAll<SVGLineElement, Link>('line')
       .data(links)
       .join('line')
-      .attr('stroke', '#999')
-      .attr('stroke-opacity', 0.6);
+      .attr('stroke', d => d.type === 'track-artist' ? '#999' : '#666')
+      .attr('stroke-opacity', 0.6)
+      .attr('stroke-width', d => d.type === 'track-artist' ? 1 : 0.5);
 
-    // Nodes
+    // Nodes zeichnen
     const node = container.append('g')
       .selectAll<SVGGElement, Node>('g')
       .data(nodes)
@@ -107,16 +154,29 @@ export default function PlaylistGraph({ tracks }: PlaylistGraphProps) {
         .on('drag', dragged)
         .on('end', dragended));
 
-    // Kreise für die Nodes
+    // Node Styling
     node.append('circle')
-      .attr('r', 5)
-      .attr('fill', (d: Node) => d.type === 'track' ? '#4CAF50' : '#2196F3');
+      .attr('r', d => {
+        switch (d.type) {
+          case 'track': return d.playlistIds && d.playlistIds.length > 1 ? 8 : 5;
+          case 'artist': return 6;
+          case 'genre': return 4;
+          default: return 5;
+        }
+      })
+      .attr('fill', d => {
+        switch (d.type) {
+          case 'track': return d.playlistIds && d.playlistIds.length > 1 ? '#ff4444' : '#4CAF50';
+          case 'artist': return '#2196F3';
+          case 'genre': return '#9C27B0';
+          default: return '#999';
+        }
+      });
 
-    // Text Labels
     node.append('text')
       .attr('dx', 8)
       .attr('dy', '.35em')
-      .text((d: Node) => d.name)
+      .text(d => d.name)
       .attr('fill', 'white')
       .style('font-size', '12px');
 
@@ -149,18 +209,6 @@ export default function PlaylistGraph({ tracks }: PlaylistGraphProps) {
       event.subject.fx = null;
       event.subject.fy = null;
     }
-
-    // Initial zoom to fit
-    const bounds = (svg.node() as SVGSVGElement).getBBox();
-    const fullWidth = bounds.width;
-    const fullHeight = bounds.height;
-    const scale = Math.min(width / fullWidth, height / fullHeight) * 0.9;
-    const translateX = (width - fullWidth * scale) / 2;
-    const translateY = (height - fullHeight * scale) / 2;
-    
-    svg.call(zoom.transform, d3.zoomIdentity
-      .translate(translateX, translateY)
-      .scale(scale));
 
     return () => {
       simulation.stop();

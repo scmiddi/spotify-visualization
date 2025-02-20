@@ -11,6 +11,7 @@ const spotifyApi = new SpotifyWebApi({
 
 interface PlaylistTracksProps {
   trackIds: string[];
+  playlistId: string;
 }
 
 interface SpotifyArtist {
@@ -35,8 +36,16 @@ interface SpotifyTrack {
   album?: SpotifyAlbum;
 }
 
-export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
-  const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
+export default function PlaylistTracks({ trackIds, playlistId }: PlaylistTracksProps) {
+  const [tracks, setTracks] = useState<Array<{
+    id: string;
+    name: string;
+    artists: Array<{
+      name: string;
+      genres?: string[];
+    }>;
+    playlistId: string;
+  }>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -82,38 +91,97 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
       }
     };
 
-    const loadTracks = async () => {
+    const fetchTracks = async () => {
       setIsLoading(true);
       try {
         const token = await fetchToken();
-        spotifyApi.setAccessToken(token);
         
+        // Tracks in Gruppen von 50 abrufen
         const trackGroups = [];
         for (let i = 0; i < trackIds.length; i += 50) {
           trackGroups.push(trackIds.slice(i, i + 50));
         }
 
-        const allTracks = [];
-        for (const group of trackGroups) {
-          const response = await spotifyApi.getTracks(group);
-          allTracks.push(...response.body.tracks);
-        }
+        const allTracks = await Promise.all(
+          trackGroups.map(async (group) => {
+            const response = await fetch(
+              `https://api.spotify.com/v1/tracks?ids=${group.join(',')}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
 
-        setTracks(allTracks);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.tracks;
+          })
+        );
+
+        // Artist Details mit Genres abrufen
+        const artistIds = new Set<string>();
+        allTracks.flat().forEach(track => {
+          track.artists.forEach((artist: { id: string }) => {
+            artistIds.add(artist.id);
+          });
+        });
+
+        const artistGroups = Array.from(artistIds);
+        const artistDetails = await Promise.all(
+          artistGroups.map(async (artistId) => {
+            const response = await fetch(
+              `https://api.spotify.com/v1/artists/${artistId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return response.json();
+          })
+        );
+
+        // Künstler-Genre-Map erstellen
+        const artistGenreMap = new Map<string, string[]>();
+        artistDetails.forEach(artist => {
+          artistGenreMap.set(artist.id, artist.genres);
+        });
+
+        // Tracks mit Genre-Informationen zusammenführen
+        const tracksWithGenres = allTracks.flat().map(track => ({
+          id: track.id,
+          name: track.name,
+          artists: track.artists.map((artist: { id: string; name: string }) => ({
+            name: artist.name,
+            genres: artistGenreMap.get(artist.id)
+          })),
+          playlistId
+        }));
+
+        setTracks(tracksWithGenres);
         setError(null);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler';
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unbekannter Fehler';
         setError(`Fehler beim Laden der Tracks: ${errorMessage}`);
-        console.error('Error loading tracks:', err);
+        console.error('Error loading tracks:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
     if (trackIds.length > 0) {
-      loadTracks();
+      fetchTracks();
     }
-  }, [trackIds]);
+  }, [trackIds, playlistId]);
 
   if (isLoading) {
     return (
@@ -134,32 +202,24 @@ export default function PlaylistTracks({ trackIds }: PlaylistTracksProps) {
 
   return (
     <div className="space-y-8">
+      <PlaylistGraph tracks={tracks} />
+      
       <div className="space-y-4">
         <h3 className="text-xl font-semibold">Tracks ({tracks.length})</h3>
-        <PlaylistGraph tracks={tracks} />
-      </div>
-      
-      <ul className="space-y-2">
-        {tracks.map((track) => (
-          <li key={track.id} className="p-4 bg-zinc-800 rounded-lg flex items-center gap-4">
-            {track.album?.images[0] && (
-              <Image
-                src={track.album.images[0].url}
-                alt={track.album.name}
-                width={48}
-                height={48}
-                className="rounded"
-              />
-            )}
-            <div>
+        <ul className="space-y-2">
+          {tracks.map((track) => (
+            <li
+              key={track.id}
+              className="p-4 bg-zinc-800 rounded-lg"
+            >
               <div className="font-medium">{track.name}</div>
               <div className="text-sm text-zinc-400">
-                {track.artists.map((artist) => artist.name).join(', ')}
+                {track.artists.map(a => a.name).join(', ')}
               </div>
-            </div>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

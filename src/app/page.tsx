@@ -8,11 +8,11 @@ import { PlaylistData } from '@/types/spotify';
 
 export default function Home() {
   const [playlistData, setPlaylistData] = useState<PlaylistData | null>(null);
-  const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
+  const [selectedPlaylists, setSelectedPlaylists] = useState<string[]>([]);
 
   const handleFileLoaded = (data: PlaylistData) => {
     setPlaylistData(data);
-    setSelectedPlaylist(null);
+    setSelectedPlaylists([]);
   };
 
   const loadExampleData = async () => {
@@ -20,10 +20,18 @@ export default function Home() {
       const response = await fetch('/spotify-visualization/example.json');
       const data = await response.json();
       setPlaylistData(data);
-      setSelectedPlaylist(null);
+      setSelectedPlaylists([]);
     } catch (error) {
       console.error('Fehler beim Laden der Beispieldatei:', error);
     }
+  };
+
+  // Alle Track-IDs aus den ausgewählten Playlists sammeln
+  const getAllTrackIds = () => {
+    if (!playlistData) return [];
+    return selectedPlaylists.flatMap(playlistId => 
+      playlistData.playlists[playlistId].tracks.map(track => track.id)
+    );
   };
 
   return (
@@ -51,16 +59,15 @@ export default function Home() {
             {playlistData && (
               <PlaylistSelector
                 playlists={playlistData.playlists}
-                selectedPlaylist={selectedPlaylist}
-                onPlaylistSelect={setSelectedPlaylist}
+                selectedPlaylists={selectedPlaylists}
+                onPlaylistSelect={setSelectedPlaylists}
               />
             )}
 
-            {selectedPlaylist && playlistData && (
+            {selectedPlaylists.length > 0 && playlistData && (
               <PlaylistTracks
-                trackIds={playlistData.playlists[selectedPlaylist].tracks.map(
-                  (track) => track.id
-                )}
+                trackIds={getAllTrackIds()}
+                playlistId={selectedPlaylists[0]} // Für die Zuordnung der Tracks
               />
             )}
           </div>
