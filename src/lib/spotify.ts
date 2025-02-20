@@ -45,12 +45,14 @@ interface SpotifyPlaylist {
   id: string;
   name: string;
   tracks: {
-    items: Array<{
-      track: {
-        id: string;
-        uri: string;
-      };
-    }>;
+    items: SpotifyTrackItem[];
+  };
+}
+
+interface SpotifyTrackItem {
+  track: {
+    id: string;
+    uri: string;
   };
 }
 
@@ -65,11 +67,8 @@ interface PlaylistMap {
   };
 }
 
-interface SpotifyTrackItem {
-  track: {
-    id: string;
-    uri: string;
-  };
+interface SpotifyPlaylistResponse {
+  items: SpotifyTrackItem[];
 }
 
 export const getPlaylistTracks = async (playlistId: string, accessToken: string) => {
@@ -83,8 +82,8 @@ export const getPlaylistTracks = async (playlistId: string, accessToken: string)
     throw new Error('Failed to fetch playlist tracks');
   }
 
-  const data = await response.json();
-  return data.items.map((item: SpotifyTrackItem) => ({
+  const data = await response.json() as SpotifyPlaylistResponse;
+  return data.items.map((item) => ({
     id: item.track.id,
     uri: item.track.uri
   }));
@@ -104,7 +103,6 @@ export const getUserPlaylists = async (accessToken: string): Promise<PlaylistMap
   const data = await response.json();
   const playlists = data.items;
 
-  // Lade Tracks für jede Playlist
   const playlistsWithTracks = await Promise.all(
     playlists.map(async (playlist: SpotifyPlaylist) => {
       const tracks = await getPlaylistTracks(playlist.id, accessToken);
