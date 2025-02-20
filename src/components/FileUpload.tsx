@@ -21,7 +21,8 @@ export default function FileUpload({ onFileLoaded }: FileUploadProps) {
 
       try {
         jsonData = JSON.parse(text);
-      } catch (e) {
+      } catch (error) {
+        console.error('JSON Parse Error:', error);
         throw new Error('Ungültiges Dateiformat. Bitte eine gültige JSON oder TXT Datei mit JSON-Inhalt hochladen.');
       }
 
