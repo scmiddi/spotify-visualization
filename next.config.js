@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  basePath: '/spotify-visualization',
+  basePath: process.env.NODE_ENV === 'development' ? '' : '/spotify-visualization',
   images: { unoptimized: true },
   env: {
     NEXT_PUBLIC_SPOTIFY_CLIENT_ID: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
