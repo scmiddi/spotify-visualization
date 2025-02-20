@@ -65,6 +65,13 @@ interface PlaylistMap {
   };
 }
 
+interface SpotifyTrackItem {
+  track: {
+    id: string;
+    uri: string;
+  };
+}
+
 export const getPlaylistTracks = async (playlistId: string, accessToken: string) => {
   const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
     headers: {
@@ -77,7 +84,7 @@ export const getPlaylistTracks = async (playlistId: string, accessToken: string)
   }
 
   const data = await response.json();
-  return data.items.map((item: any) => ({
+  return data.items.map((item: SpotifyTrackItem) => ({
     id: item.track.id,
     uri: item.track.uri
   }));
