@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import PlaylistGraph from './PlaylistGraph';
 
 interface PlaylistTracksProps {
   trackIds: string[];
