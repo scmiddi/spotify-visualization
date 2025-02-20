@@ -1,39 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import SpotifyWebApi from 'spotify-web-api-node';
-import Image from 'next/image';
-import PlaylistGraph from './PlaylistGraph';
-
-const spotifyApi = new SpotifyWebApi({
-  clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
-});
 
 interface PlaylistTracksProps {
   trackIds: string[];
   playlistId: string;
-}
-
-interface SpotifyArtist {
-  name: string;
-}
-
-interface SpotifyImage {
-  url: string;
-  height?: number;
-  width?: number;
-}
-
-interface SpotifyAlbum {
-  name: string;
-  images: SpotifyImage[];
-}
-
-interface SpotifyTrack {
-  id: string;
-  name: string;
-  artists: SpotifyArtist[];
-  album?: SpotifyAlbum;
 }
 
 export default function PlaylistTracks({ trackIds, playlistId }: PlaylistTracksProps) {
